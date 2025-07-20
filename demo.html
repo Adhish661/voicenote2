@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoxNote: Transforming speech into seamless, instant notes.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&display=swap');
+
+        :root {
+            --neon-blue: #08f7fe;
+            --neon-pink: #fe53bb;
+            --neon-green: #09fbd3;
+        }
+
+        body {
+            font-family: 'Oxanium', sans-serif;
+            background-color: #09090b;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink), var(--neon-green));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .neon-button {
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
+            color: white;
+            font-weight: bold;
+            padding: 1rem 2rem;
+            border-radius: 9999px;
+            box-shadow: 0 0 15px var(--neon-pink), 0 0 30px var(--neon-blue);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .neon-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px var(--neon-green), 0 0 40px var(--neon-pink);
+        }
+        /* Add this to your <style> block */
+
+#intro-screen {
+    background-image: url('ss.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+    width: 100vw;
+    position: relative;
+}
+#intro-screen::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(9,9,11,0.7); /* dark overlay for readability */
+    z-index: 0;
+}
+#intro-screen > * {
+    position: relative;
+    z-index: 1;
+}
+        #main-interface {
+            display: none;
+        }
+
+        /* Additional styles from your interface */
+        .neon-text-blue {
+            text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
+            color: var(--neon-blue);
+        }
+        
+        .neon-text-pink {
+            text-shadow: 0 0 10px var(--neon-pink), 0 0 20px var(--neon-pink);
+            color: var(--neon-pink);
+        }
+        
+        .neon-border-blue {
+            box-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+        }
+        
+        .neon-border-pink {
+            box-shadow: 0 0 10px var(--neon-pink), 0 0 20px var(--neon-pink);
+            border: 1px solid var(--neon-pink);
+        }
+        
+        .note-card {
+            background: rgba(9, 9, 11, 0.7);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .note-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 15px var(--neon-green), 0 0 30px rgba(9, 251, 211, 0.3);
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(8, 247, 254, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 15px rgba(8, 247, 254, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(8, 247, 254, 0);
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center">
+
+    <!-- Intro Screen -->
+    <div id="intro-screen" class="flex flex-col items-center justify-center text-center min-h-screen px-4">
+        <h1 class="text-5xl md:text-7xl font-bold mb-6 gradient-text">VoxNote</h1>
+        <p class="text-gray-400 text-lg mb-8">Transforming speech into seamless, instant note .</p>
+        <button id="start-btn" class="neon-button">Start Recording</button>
+    </div>
+
+    <!-- Main Interface -->
+    <div id="main-interface" class="w-full">
+        <div class="container mx-auto px-4 py-12">
+            <!-- Header -->
+            <header class="mb-12 text-center">
+                <h1 class="text-4xl md:text-6xl font-bold mb-4 gradient-text">V<span class="neon-text-blue">N</span></h1>
+                <p class="text-gray-400 max-w-2xl mx-auto">Capture your thoughts instantly, your voice, your notes, your way.</p>
+            </header>
+            
+            <!-- Main Content -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Recording Section -->
+                <div class="bg-black bg-opacity-50 rounded-xl p-6 neon-border-blue">
+                    <h2 class="text-2xl font-bold mb-6 neon-text-blue">Record Your Notes</h2>
+                    
+                    <div id="voice-controls" class="mb-6">
+                        <div class="flex items-center justify-center mb-4">
+                            <button id="record-btn" class="relative rounded-full w-16 h-16 flex items-center justify-center neon-border-pink bg-black hover:bg-opacity-70 transition-all">
+                                <div class="absolute rounded-full w-12 h-12 bg-red-500 pulse-animation" id="pulse"></div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div class="text-center mb-6">
+                            <p id="status" class="text-gray-400">Press and hold the mic button to record</p>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="note-title" class="block text-sm font-medium text-gray-300 mb-2">Note Title</label>
+                            <input type="text" id="note-title" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Give your note a title">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="note-content" class="block text-sm font-medium text-gray-300 mb-2">Note Content</label>
+                            <textarea id="note-content" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]" placeholder="Your recorded voice note will appear here"></textarea>
+                        </div>
+                        
+                        <button id="save-btn" class="w-full py-3 px-6 rounded-lg bg-gradient-to-r from-blue-500 to-pink-500 text-white font-bold hover:opacity-90 transition-all disabled:opacity-50" disabled>
+                            Save Note
+                        </button>
+
+                        <!-- Summarize Button -->
+                        <button id="summarize-btn" class="w-full py-3 px-6 rounded-lg bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold hover:opacity-90 transition-all mt-4 disabled:opacity-50" disabled>
+                            Summarize Note
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Saved Notes Section -->
+                <div class="bg-black bg-opacity-50 rounded-xl p-6 neon-border-pink">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold neon-text-pink">Your Notes</h2>
+                        <div class="relative">
+                            <input type="text" id="search-notes" class="px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" placeholder="Search notes...">
+                        </div>
+                    </div>
+                    
+                    <div id="notes-container" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                        <div class="text-center py-8">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p class="text-gray-500">No notes yet. Record your first note!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hero background elements -->
+        <div class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-black to-gray-900 opacity-90"></div>
+            <div class="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-blue-500 filter blur-[100px] opacity-10"></div>
+            <div class="absolute top-2/3 right-1/4 w-64 h-64 rounded-full bg-pink-500 filter blur-[100px] opacity-10"></div>
+            <div class="absolute bottom-1/4 left-1/2 w-64 h-64 rounded-full bg-green-500 filter blur-[100px] opacity-10"></div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const recordBtn = document.getElementById('record-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const summarizeBtn = document.getElementById('summarize-btn');
+        const noteContent = document.getElementById('note-content');
+        const noteTitle = document.getElementById('note-title');
+        const statusText = document.getElementById('status');
+        const notesContainer = document.getElementById('notes-container');
+        const searchInput = document.getElementById('search-notes');
+        const pulse = document.getElementById('pulse');
+        const startBtn = document.getElementById('start-btn');
+        const introScreen = document.getElementById('intro-screen');
+        const mainInterface = document.getElementById('main-interface');
+        
+        // Variables
+        let recognition;
+        let isRecording = false;
+        let notes = JSON.parse(localStorage.getItem('voice-notes')) || [];
+        
+        // Initialize speech recognition
+        function initSpeechRecognition() {
+            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!window.SpeechRecognition) {
+                statusText.textContent = "Speech recognition not supported in your browser";
+                recordBtn.disabled = true;
+                return;
+            }
+            
+            recognition = new window.SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            
+            recognition.onstart = () => {
+                isRecording = true;
+                recordBtn.classList.add('bg-red-500');
+                pulse.classList.remove('hidden');
+                statusText.textContent = "Recording... Speak now";
+            };
+            
+            recognition.onresult = (event) => {
+                const transcript = Array.from(event.results)
+                    .map(result => result[0])
+                    .map(result => result.transcript)
+                    .join('');
+                
+                noteContent.value = transcript;
+                checkSaveButton();
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error', event.error);
+                statusText.textContent = `Error: ${event.error}`;
+                stopRecording();
+            };
+            
+            recognition.onend = () => {
+                if (isRecording) {
+                    recognition.start(); // Continue recording if stopped unexpectedly
+                }
+            };
+        }
+        
+        // Start/stop recording
+        recordBtn.addEventListener('mousedown', startRecording);
+        recordBtn.addEventListener('touchstart', startRecording);
+        recordBtn.addEventListener('mouseup', stopRecording);
+        recordBtn.addEventListener('touchend', stopRecording);
+        recordBtn.addEventListener('mouseleave', stopRecording);
+        
+        function startRecording(e) {
+            e.preventDefault();
+            if (!isRecording) {
+                noteContent.value = '';
+                recognition.start();
+            }
+        }
+        
+        function stopRecording() {
+            if (isRecording) {
+                recognition.stop();
+                isRecording = false;
+                recordBtn.classList.remove('bg-red-500');
+                pulse.classList.add('hidden');
+                statusText.textContent = "Press and hold the mic button to record";
+            }
+        }
+        
+        // Save note
+        saveBtn.addEventListener('click', saveNote);
+        
+        function saveNote() {
+            if (!noteTitle.value.trim() || !noteContent.value.trim()) return;
+            
+            const newNote = {
+                id: Date.now(),
+                title: noteTitle.value,
+                content: noteContent.value,
+                date: new Date().toLocaleString()
+            };
+            
+            notes.unshift(newNote);
+            saveNotes();
+            renderNotes();
+            
+            // Reset form
+            noteTitle.value = '';
+            noteContent.value = '';
+            checkSaveButton();
+            
+            // Show success message
+            statusText.textContent = "Note saved successfully!";
+            setTimeout(() => {
+                if (!isRecording) {
+                    statusText.textContent = "Press and hold the mic button to record";
+                }
+            }, 3000);
+        }
+        
+        // Summarize note
+        summarizeBtn.addEventListener('click', summarizeNote);
+        
+        async function summarizeNote() {
+            const content = noteContent.value.trim();
+            if (!content) return;
+            
+            if (content.split(' ').length < 20) {
+                statusText.textContent = "Text is too short to summarize meaningfully";
+                setTimeout(() => {
+                    if (!isRecording) statusText.textContent = "Press and hold the mic button to record";
+                }, 3000);
+                return;
+            }
+            
+            summarizeBtn.disabled = true;
+            statusText.textContent = "Summarizing with AI...";
+            
+            try {
+                // For production: Replace with your actual backend endpoint
+                const response = await fetch('http://localhost:3001/api/summarize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: content })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                
+                const data = await response.json();
+                noteContent.value = data.summary;
+                statusText.textContent = "AI summary complete!";
+            } catch (error) {
+                console.error("Summarization failed:", error);
+                statusText.textContent = "Failed to summarize. Please try again later.";
+                
+                // Fallback to simple summarization if API fails
+                const fallbackSummary = await simpleSummarize(content);
+                noteContent.value = fallbackSummary;
+                statusText.textContent = "Basic summary generated (API unavailable)";
+            } finally {
+                setTimeout(() => {
+                    if (!isRecording) {
+                        statusText.textContent = "Press and hold the mic button to record";
+                    }
+                }, 3000);
+                summarizeBtn.disabled = false;
+            }
+        }
+        
+        // Simple client-side summarization fallback
+        function simpleSummarize(text) {
+            return new Promise((resolve) => {
+                const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+                const importantSentences = sentences.filter(s => 
+                    s.length > 30 && 
+                    (s.includes('important') || 
+                    s.includes('key') || 
+                    s.includes('summary') ||
+                    s.split(' ').length > 8)
+                );
+                
+                const summary = importantSentences.length > 0 
+                    ? importantSentences.join('. ') + '.' 
+                    : sentences.slice(0, Math.min(2, sentences.length)).join('. ') + '.';
+                
+                setTimeout(() => resolve(summary), 500);
+            });
+        }
+        
+        // Save notes to localStorage
+        function saveNotes() {
+            localStorage.setItem('voice-notes', JSON.stringify(notes));
+        }
+        
+        // Render notes
+        function renderNotes(filteredNotes = null) {
+            const notesToRender = filteredNotes || notes;
+            
+            if (notesToRender.length === 0) {
+                notesContainer.innerHTML = `
+                    <div class="text-center py-8">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p class="text-gray-500">${filteredNotes ? 'No matching notes found' : 'No notes yet. Record your first note!'}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            notesContainer.innerHTML = notesToRender.map(note => `
+                <div class="note-card rounded-lg p-4 border border-gray-700 hover:border-blue-500 transition-all">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-lg truncate">${note.title}</h3>
+                        <button class="delete-note text-gray-400 hover:text-red-500" data-id="${note.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-gray-300 text-sm mb-2 line-clamp-3">${note.content}</p>
+                    <p class="text-gray-500 text-xs">${note.date}</p>
+                </div>
+            `).join('');
+            
+            // Add delete event listeners
+            document.querySelectorAll('.delete-note').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteNote(parseInt(btn.dataset.id));
+                });
+            });
+            
+            // Add click event to view full note
+            document.querySelectorAll('.note-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const id = parseInt(card.querySelector('.delete-note').dataset.id);
+                    viewNote(id);
+                });
+            });
+        }
+        
+        // Delete note
+        function deleteNote(id) {
+            if (confirm('Are you sure you want to delete this note?')) {
+                notes = notes.filter(note => note.id !== id);
+                saveNotes();
+                renderNotes();
+                
+                // If we had a search active, re-filter
+                if (searchInput.value.trim()) {
+                    searchNotes();
+                }
+            }
+        }
+        
+        // View full note
+        function viewNote(id) {
+            const note = notes.find(note => note.id === id);
+            if (!note) return;
+            
+            noteContent.value = note.content;
+            noteTitle.value = note.title;
+            checkSaveButton();
+            
+            // Scroll to recording section
+            document.querySelector('#voice-controls').scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+        
+        // Check if save/summarize buttons should be enabled
+        function checkSaveButton() {
+            saveBtn.disabled = !(noteTitle.value.trim() && noteContent.value.trim());
+            summarizeBtn.disabled = !noteContent.value.trim();
+        }
+        
+        // Search notes
+        searchInput.addEventListener('input', searchNotes);
+        
+        function searchNotes() {
+            const query = searchInput.value.trim().toLowerCase();
+            
+            if (!query) {
+                renderNotes();
+                return;
+            }
+            
+            const filtered = notes.filter(note => 
+                note.title.toLowerCase().includes(query) || 
+                note.content.toLowerCase().includes(query)
+            );
+            
+            renderNotes(filtered);
+        }
+        
+        // Input event listeners
+        noteTitle.addEventListener('input', checkSaveButton);
+        noteContent.addEventListener('input', checkSaveButton);
+        
+        // Handle intro screen transition
+        startBtn.addEventListener('click', () => {
+            introScreen.style.display = 'none';
+            mainInterface.style.display = 'block';
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initSpeechRecognition();
+            renderNotes();
+            pulse.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
